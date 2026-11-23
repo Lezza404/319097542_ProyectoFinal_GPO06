@@ -314,7 +314,7 @@ void animate(void) {
     }
 
 
-    // Máquina de estados para la caminata del esqueleto central
+    // Máquina de estados para la caminata del esqueleto 2
     // Estado 1 - Camina hacia la derecha 
     if (estadoEsqueleto == 1) {
         if (posX < 350.0f) {
@@ -397,13 +397,13 @@ void animate(void) {
             abuelaRotPiernaIzq += abuelaIncPiernaIzq;
             i_curr_steps_abuela++;
         }
-
-
-        // Animación del Esqueleto 3 (reverencias frente a la tumba)
-        esq3_inclinacion = (1.0f - cos(tiempo * 1.4f)) * 16.0f;
-        esq3_rotCabezaX = esq3_inclinacion * 0.45f;
-        esq3_rotBrazos = -esq3_inclinacion * 0.6f;
     }
+
+
+    // Animación del Esqueleto 3 (reverencias frente a la tumba)
+    esq3_inclinacion = (1.0f - cos(tiempo * 1.4f)) * 16.0f;
+    esq3_rotCabezaX = esq3_inclinacion * 0.45f;
+    esq3_rotBrazos = -esq3_inclinacion * 0.6f;
 
 
     // Animación para el Esqueleto 1 (saludando junto a la ofrenda)
