@@ -73,24 +73,24 @@ float esq3_rotBrazos = 0.0f;
 
 // Variables para KeyFrames (Baile articulado)
 float posX = 0.0f,
-posY = 0.0f,
-posZ = 0.0f,
-giroTorso = 0.0f,
-rotCabeza = 0.0f,
-rotBrazoDer = 0.0f,
-rotBrazoIzq = 0.0f,
-rotPiernaDer = 0.0f,
-rotPiernaIzq = 0.0f;
+      posY = 0.0f,
+      posZ = 0.0f,
+      giroTorso = 0.0f,
+      rotCabeza = 0.0f,
+      rotBrazoDer = 0.0f,
+      rotBrazoIzq = 0.0f,
+      rotPiernaDer = 0.0f,
+      rotPiernaIzq = 0.0f;
 
 float incX = 0.0f,
-incY = 0.0f,
-incZ = 0.0f,
-incGiroTorso = 0.0f,
-incCabeza = 0.0f,
-incBrazoDer = 0.0f,
-incBrazoIzq = 0.0f,
-incPiernaDer = 0.0f,
-incPiernaIzq = 0.0f;
+      incY = 0.0f,
+      incZ = 0.0f,
+      incGiroTorso = 0.0f,
+      incCabeza = 0.0f,
+      incBrazoDer = 0.0f,
+      incBrazoIzq = 0.0f,
+      incPiernaDer = 0.0f,
+      incPiernaIzq = 0.0f;
 
 
 // Para la animación del viento
@@ -161,9 +161,9 @@ void interpolation(void) {
     incPiernaIzq = (KeyFrame[playIndex + 1].rotPiernaIzq - KeyFrame[playIndex].rotPiernaIzq) / i_max_steps;
 }
 
-// ------------------------------------------------------------------
-// Variables para KeyFrames 2 (Abuela junto a la ofrenda)
-// ------------------------------------------------------------------
+// --------------------------------------------------------------------
+// Variables para animación por KeyFrames 2 (Abuela junto a la ofrenda)
+// --------------------------------------------------------------------
 float abuelaPosX = 0.0f,
 abuelaPosY = 0.0f,
 abuelaPosZ = 0.0f,
@@ -251,11 +251,9 @@ void animate(void) {
     // Estado 2 - Se mueve hacia atrás
     else if (estadoFantasma == 2) {
         orientaFantasma = 180.0f;
-
         if (movFantasma_z > -1000.0f) {
             movFantasma_z -= 2.0f; 
         }
-
         else {
             pausa += 0.01f;
             
@@ -289,11 +287,9 @@ void animate(void) {
     // Estado 4 - Se mueve hacia enfrente 
     else if (estadoFantasma == 4) {
         orientaFantasma = 0.0f;
-
         if (movFantasma_z < 900.0f) {
             movFantasma_z += 2.0f;
         }
-
         else {
             pausa += 0.01f;
             
@@ -312,7 +308,6 @@ void animate(void) {
         if (movFantasma_x < 0.0f) {
             movFantasma_x += 2.0f;
         }
-
         else {
             estadoFantasma = 1;
         }
@@ -331,6 +326,7 @@ void animate(void) {
             rotBrazoIzq = sin(tiempo * 4.0f) * 22.0f;
             rotCabeza = sin(tiempo * 2.0f) * 6.0f;
         }
+        
         else {
             // Se detiene un momento antes de dar la vuelta
             rotPiernaDer = 0.0f;
@@ -347,7 +343,7 @@ void animate(void) {
 
 
     // Estado 2 - Camina hacia la izquierda 
-    else if (estadoEsqueleto == 2) {
+    else if (estadoEsqueleto == 2) {   
         if (posX > -350.0f) {
             posX -= 1.8f;
             giroTorso = -90.0f;
@@ -357,6 +353,7 @@ void animate(void) {
             rotBrazoIzq = sin(tiempo * 4.0f) * 22.0f;
             rotCabeza = sin(tiempo * 2.0f) * 6.0f;
         }
+        
         else {
             // Se detiene un momento antes de volver a la derecha
             rotPiernaDer = 0.0f;
@@ -402,8 +399,7 @@ void animate(void) {
         }
 
 
-        // Animación automática del Esqueleto 3 (reverencias suaves frente a la tumba)
-        // Va de 0° (erguido) a 32° (inclinado) de forma suave y continua
+        // Animación del Esqueleto 3 (reverencias frente a la tumba)
         esq3_inclinacion = (1.0f - cos(tiempo * 1.4f)) * 16.0f;
         esq3_rotCabezaX = esq3_inclinacion * 0.45f;
         esq3_rotBrazos = -esq3_inclinacion * 0.6f;
