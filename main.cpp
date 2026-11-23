@@ -3,8 +3,6 @@
 /*---------------     Semestre 2027-1     -----------------*/
 /*---------------    Nombre del alumno:   -----------------*/
 /*---------------       319097542         -----------------*/
-
-
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 #include <Windows.h>
@@ -57,34 +55,20 @@ double deltaTime = 0.0f,
 lastFrame = 0.0f;
 
 
-//Bruja levitación
-float levitaBruja = 0.0f;
-
-//Esqueleto movimiento 
-float movEsqueleto_y = 0.0f;
-
-
-// Variables para el vuelo automático
-float movEscoba_x = -220.0f;
-float movEscoba_y = 100.0f;
-float movEscoba_z = 200.0f;
-float rotEscoba_pitch = 0.0f;
-float rotEscoba_yaw = 0.0f;
-float rotEscoba_roll = 0.0f;
-float tiempoVuelo = 0.0f;
-bool escobaVueloErratico = true;
+// Variables para Esqueleto 2 (junto a la ofrenda)
+float esq2_saltoY = 0.0f;
+float esq2_giroTorso = 0.0f;
+float esq2_rotCabeza = 0.0f;
+float esq2_rotBrazoDer = 0.0f;
+float esq2_rotBrazoIzq = 0.0f;
+float esq2_rotPiernaDer = 0.0f;
+float esq2_rotPiernaIzq = 0.0f;
 
 
-// Variables de Espada
-float movEspada_x = 0.0f;
-float movEspada_y = 50.0f; 
-float movEspada_z = 0.0f;
-float rotEspada_pitch = 0.0f;
-float rotEspada_yaw = 0.0f;
-float rotEspada_roll = 0.0f;
-float tiempoVueloEspada = 0.0f;
-
-
+// Variables para Esqueleto 3 (reverencias frente a una tumba)
+float esq3_inclinacion = 0.0f;
+float esq3_rotCabezaX = 0.0f;
+float esq3_rotBrazos = 0.0f;
 
 
 // Variables para KeyFrames (Baile articulado)
@@ -123,6 +107,11 @@ float alturaFantasma = 0.0f,
 int estadoFantasma = 1;       
 
 
+// Máquina de estados para el esqueleto central 
+int estadoEsqueleto = 1;
+float pausaEsqueleto = 0.0f;
+
+
 #define MAX_FRAMES 9
 int i_max_steps = 18;
 int i_curr_steps = 0;
@@ -148,6 +137,9 @@ int playIndex = 0;
 
 
 void resetElements(void) {
+    posX = KeyFrame[0].posX;
+    posY = KeyFrame[0].posY;
+    posZ = KeyFrame[0].posZ;
     giroTorso = KeyFrame[0].giroTorso;
     rotCabeza = KeyFrame[0].rotCabeza;
     rotBrazoDer = KeyFrame[0].rotBrazoDer;
@@ -327,42 +319,69 @@ void animate(void) {
     }
 
 
-    // Interpolación de KeyFrames
-    if (play) {
-        if (i_curr_steps >= i_max_steps) {
-            playIndex++;
-            if (playIndex > FrameIndex - 2) {
-                std::cout << "Animation ended" << std::endl;
-                playIndex = 0;
-                play = false;
-            }
-            else {
-                i_curr_steps = 0;
-                interpolation();
-            }
+    // Máquina de estados para la caminata del esqueleto central
+    // Estado 1 - Camina hacia la derecha 
+    if (estadoEsqueleto == 1) {
+        if (posX < 350.0f) {
+            posX += 1.8f;
+            giroTorso = 90.0f;
+            rotPiernaDer = sin(tiempo * 4.0f) * 28.0f;
+            rotPiernaIzq = -sin(tiempo * 4.0f) * 28.0f;
+            rotBrazoDer = -sin(tiempo * 4.0f) * 22.0f;
+            rotBrazoIzq = sin(tiempo * 4.0f) * 22.0f;
+            rotCabeza = sin(tiempo * 2.0f) * 6.0f;
         }
         else {
-            posX += incX;
-            posY += incY;
-            posZ += incZ;
-            giroTorso += incGiroTorso;
-            rotCabeza += incCabeza;
-            rotBrazoDer += incBrazoDer;
-            rotBrazoIzq += incBrazoIzq;
-            rotPiernaDer += incPiernaDer;
-            rotPiernaIzq += incPiernaIzq;
-            i_curr_steps++;
+            // Se detiene un momento antes de dar la vuelta
+            rotPiernaDer = 0.0f;
+            rotPiernaIzq = 0.0f;
+            rotBrazoDer = 0.0f;
+            rotBrazoIzq = 0.0f;
+            pausaEsqueleto += 0.01f;
+            if (pausaEsqueleto > 0.8f) {
+                pausaEsqueleto = 0.0f;
+                estadoEsqueleto = 2;
+            }
         }
     }
+
+
+    // Estado 2 - Camina hacia la izquierda 
+    else if (estadoEsqueleto == 2) {
+        if (posX > -350.0f) {
+            posX -= 1.8f;
+            giroTorso = -90.0f;
+            rotPiernaDer = sin(tiempo * 4.0f) * 28.0f;
+            rotPiernaIzq = -sin(tiempo * 4.0f) * 28.0f;
+            rotBrazoDer = -sin(tiempo * 4.0f) * 22.0f;
+            rotBrazoIzq = sin(tiempo * 4.0f) * 22.0f;
+            rotCabeza = sin(tiempo * 2.0f) * 6.0f;
+        }
+        else {
+            // Se detiene un momento antes de volver a la derecha
+            rotPiernaDer = 0.0f;
+            rotPiernaIzq = 0.0f;
+            rotBrazoDer = 0.0f;
+            rotBrazoIzq = 0.0f;
+            pausaEsqueleto += 0.01f;
+            if (pausaEsqueleto > 0.8f) {
+                pausaEsqueleto = 0.0f;
+                estadoEsqueleto = 1;
+            }
+        }
+    }
+        
 
     // Interpolación de KeyFrames 2 (Abuela)
     if (playAbuela) {
         if (i_curr_steps_abuela >= i_max_steps_abuela) {
             playIndexAbuela++;
             if (playIndexAbuela > FrameIndexAbuela - 2) {
-                std::cout << "Animacion Abuela terminada" << std::endl;
+                // En lugar de apagar playAbuela, reinicia el ciclo desde el Frame 0
                 playIndexAbuela = 0;
-                playAbuela = false;
+                i_curr_steps_abuela = 0;
+                resetElementsAbuela();
+                interpolationAbuela();
             }
             else {
                 i_curr_steps_abuela = 0;
@@ -381,65 +400,24 @@ void animate(void) {
             abuelaRotPiernaIzq += abuelaIncPiernaIzq;
             i_curr_steps_abuela++;
         }
-    }
-
-    // levitación para la bruja
-    levitaBruja = sin(tiempo * 2.5f) * 5.0f;
 
 
-    //Escoba
-    if (escobaVueloErratico) {
-        tiempoVuelo += 0.08f;
-
-        float prev_x = movEscoba_x;
-        float prev_z = movEscoba_z;
-
-        movEscoba_x = sin(tiempoVuelo * 0.8f) * 900.0f + cos(tiempoVuelo * 0.4f) * 400.0f;
-        movEscoba_z = cos(tiempoVuelo * 0.6f) * 900.0f + sin(tiempoVuelo * 0.3f) * 400.0f;
-        movEscoba_y = 350.0f + sin(tiempoVuelo * 1.5f) * 150.0f;
-
-        float dir_x = movEscoba_x - prev_x;
-        float dir_z = movEscoba_z - prev_z;
-
-        if (dir_x != 0.0f || dir_z != 0.0f) {
-            rotEscoba_yaw = glm::degrees(atan2(dir_x, dir_z));
-        }
-
-        rotEscoba_pitch = cos(tiempoVuelo * 1.5f) * 20.0f;
-        rotEscoba_roll = sin(tiempoVuelo * 2.0f) * 15.0f;
-    }
-    else {
-        glm::vec3 posFinalEscoba = glm::vec3(-250.0f, 75.0f + levitaBruja, 220.0f);
-
-        movEscoba_x = glm::mix(movEscoba_x, posFinalEscoba.x, 0.04f);
-        movEscoba_y = glm::mix(movEscoba_y, posFinalEscoba.y, 0.04f);
-        movEscoba_z = glm::mix(movEscoba_z, posFinalEscoba.z, 0.04f);
-        rotEscoba_yaw = glm::mix(rotEscoba_yaw, 45.0f, 0.05f);
-        rotEscoba_pitch = glm::mix(rotEscoba_pitch, -90.0f, 0.05f);
-        rotEscoba_roll = glm::mix(rotEscoba_roll, 0.0f, 0.05f);
+        // Animación automática del Esqueleto 3 (reverencias suaves frente a la tumba)
+        // Va de 0° (erguido) a 32° (inclinado) de forma suave y continua
+        esq3_inclinacion = (1.0f - cos(tiempo * 1.4f)) * 16.0f;
+        esq3_rotCabezaX = esq3_inclinacion * 0.45f;
+        esq3_rotBrazos = -esq3_inclinacion * 0.6f;
     }
 
 
-    // Animación del esqueleto emergiendo de la tumba
-    movEsqueleto_y =-90.0f + fmax(0.0f, sin(tiempo * 1.2f) * 60.0f);
-
-
-    // Animación de la Espada
-    tiempoVueloEspada += 0.06f; 
-
-    float prev_espada_x = movEspada_x;
-    float prev_espada_z = movEspada_z;
-    movEspada_x = sin(tiempoVueloEspada * 0.7f) * 700.0f + cos(tiempoVueloEspada * 0.5f) * 300.0f;
-    movEspada_z = cos(tiempoVueloEspada * 0.5f) * 700.0f + sin(tiempoVueloEspada * 0.4f) * 300.0f;
-    movEspada_y = 60.0f + sin(tiempoVueloEspada * 1.2f) * 25.0f; 
-    float dir_espada_x = movEspada_x - prev_espada_x;
-    float dir_espada_z = movEspada_z - prev_espada_z;
-    if (dir_espada_x != 0.0f || dir_espada_z != 0.0f) {
-        rotEspada_yaw = glm::degrees(atan2(dir_espada_x, dir_espada_z));
-    }
-
-    rotEspada_pitch = cos(tiempoVueloEspada * 1.5f) * 25.0f;
-    rotEspada_roll = sin(tiempoVueloEspada * 2.0f) * 20.0f;
+    // Animación para el Esqueleto 1 (saludando junto a la ofrenda)
+    esq2_saltoY = 0.0f;
+    esq2_giroTorso = sin(tiempo * 1.2f) * 6.0f;           
+    esq2_rotCabeza = sin(tiempo * 2.5f) * 8.0f;           
+    esq2_rotBrazoDer = -135.0f;                           
+    esq2_rotBrazoIzq = sin(tiempo * 2.0f) * 6.0f;         
+    esq2_rotPiernaDer = 0.0f;
+    esq2_rotPiernaIzq = 0.0f;
 }
 
 
@@ -522,55 +500,111 @@ int main() {
     Model Pila_Huesos("resources/objects/Pila_Huesos/bone-pile.obj");
     Model Fantasma("resources/objects/Fantasma/Floating+Cape+1.obj");
     Model Ofrenda("resources/objects/Ofrenda/Ofrenda.obj");
-    Model Bruja("resources/objects/Bruja/witch.obj");
-    Model Escoba("resources/objects/Escoba/witch-broom.obj");
     Model Esqueleto("resources/objects/Esqueleto/human-skeleton.obj");
-    Model Espada("resources/objects/Espada/fantasy-sword.obj");
-
-
     ModelAnim Mujer1("resources/objects/Mujer1/Shoved.dae");
-    Mujer1.initShaders(animShader.ID);
-    // Modelos articulados para animación por KeyFrames
     Model BailarinTorso("resources/objects/Bailarin/Torso.obj");
     Model BailarinCabeza("resources/objects/Bailarin/Cabeza.obj");
     Model BailarinBrazoDer("resources/objects/Bailarin/BrazoDer.obj");
     Model BailarinBrazoIzq("resources/objects/Bailarin/BrazoIzq.obj");
     Model BailarinPiernaDer("resources/objects/Bailarin/PiernaDer.obj");
     Model BailarinPiernaIzq("resources/objects/Bailarin/PiernaIzq.obj");
-    // Modelos articulados para KeyFrames 2 (Abuela)
     Model AbuelaTorso("resources/objects/Abuela/AbuelaTorso.obj");
     Model AbuelaCabeza("resources/objects/Abuela/AbuelaCabeza.obj");
     Model AbuelaBrazoDer("resources/objects/Abuela/AbuelaBrazoDer.obj");
     Model AbuelaBrazoIzq("resources/objects/Abuela/AbuelaBrazoIzq.obj");
     Model AbuelaPiernaDer("resources/objects/Abuela/AbuelaPiernaDer.obj");
     Model AbuelaPiernaIzq("resources/objects/Abuela/AbuelaPiernaIzq.obj");
+    Mujer1.initShaders(animShader.ID);
+    
+    
+    // ------------------------------------------------------------------
+    // KeyFrames para la Abuela
+    // ------------------------------------------------------------------
+    // Comienza en postura de reposo viendo hacia el pasillo
+    KeyFrameAbuela[0].posX = 0.0f;
+    KeyFrameAbuela[0].posY = 0.0f;
+    KeyFrameAbuela[0].posZ = 0.0f;
+    KeyFrameAbuela[0].giroTorso = 0.0f;
+    KeyFrameAbuela[0].rotCabeza = 0.0f;
+    KeyFrameAbuela[0].rotBrazoDer = 0.0f;
+    KeyFrameAbuela[0].rotBrazoIzq = 0.0f;
+    KeyFrameAbuela[0].rotPiernaDer = 0.0f;
+    KeyFrameAbuela[0].rotPiernaIzq = 0.0f;
 
-    // Precarga de la coreografía (posX, posY, posZ, giroTorso, cabeza, brazoDer, brazoIzq, piernaDer, piernaIzq)
-    KeyFrame[0] = { 0.0f,  0.0f,   0.0f,   0.0f,   0.0f,    0.0f,    0.0f,   0.0f,   0.0f };
-    KeyFrame[1] = { -25.0f, 12.0f,   0.0f, -15.0f,  10.0f, -110.0f,   35.0f,  30.0f, -20.0f };
-    KeyFrame[2] = { 0.0f,  0.0f,   0.0f,   0.0f,  -8.0f,  -40.0f,  -40.0f,   0.0f,   0.0f };
-    KeyFrame[3] = { 25.0f, 12.0f,   0.0f,  15.0f, -10.0f,   35.0f, -110.0f, -20.0f,  30.0f };
-    KeyFrame[4] = { 0.0f, 20.0f, -15.0f,   0.0f,  12.0f, -140.0f, -140.0f,  25.0f,  25.0f };
-    KeyFrame[5] = { -25.0f,  8.0f,   0.0f, -20.0f,  -8.0f,  -95.0f,   45.0f, -25.0f,  35.0f };
-    KeyFrame[6] = { 25.0f,  8.0f,   0.0f,  20.0f,   8.0f,   45.0f,  -95.0f,  35.0f, -25.0f };
-    KeyFrame[7] = { 0.0f, 18.0f,  15.0f, 180.0f,   0.0f, -120.0f, -120.0f,  15.0f, -15.0f };
-    KeyFrame[8] = { 0.0f,  0.0f,   0.0f, 360.0f,   0.0f,    0.0f,    0.0f,   0.0f,   0.0f };
+    // Levanta el brazo derecho para empezar a saludar
+    KeyFrameAbuela[1].posX = 0.0f;
+    KeyFrameAbuela[1].posY = 1.0f;
+    KeyFrameAbuela[1].posZ = 0.0f;
+    KeyFrameAbuela[1].giroTorso = -5.0f;
+    KeyFrameAbuela[1].rotCabeza = 6.0f;
+    KeyFrameAbuela[1].rotBrazoDer = -40.0f;
+    KeyFrameAbuela[1].rotBrazoIzq = -5.0f;
+    KeyFrameAbuela[1].rotPiernaDer = 3.0f;
+    KeyFrameAbuela[1].rotPiernaIzq = -3.0f;
 
-    // Precarga de movimientos de la abuela (saludo y balanceo junto a la ofrenda)
-    KeyFrameAbuela[0] = { 0.0f, 0.0f,  0.0f,   0.0f,   0.0f,    0.0f,   0.0f,   0.0f,   0.0f };
-    KeyFrameAbuela[1] = { 0.0f, 2.0f,  0.0f, -10.0f,  10.0f, -125.0f, -25.0f,  10.0f, -10.0f };
-    KeyFrameAbuela[2] = { 0.0f, 0.0f,  0.0f,  -5.0f,  -8.0f,  -95.0f, -35.0f,   0.0f,   0.0f };
-    KeyFrameAbuela[3] = { 0.0f, 2.0f,  0.0f, -12.0f,  10.0f, -130.0f, -20.0f, -10.0f,  10.0f };
-    KeyFrameAbuela[4] = { -8.0f, 0.0f, 10.0f,  15.0f,  -6.0f,  -45.0f, -85.0f,  15.0f, -15.0f };
-    KeyFrameAbuela[5] = { 0.0f, 2.0f,  0.0f,   5.0f,   8.0f,  -90.0f, -40.0f,   0.0f,   0.0f };
-    KeyFrameAbuela[6] = { 0.0f, 0.0f,  0.0f,   0.0f,   0.0f,    0.0f,   0.0f,   0.0f,   0.0f };
+    // Primer movimiento de saludo (baja ligeramente el brazo)
+    KeyFrameAbuela[2].posX = 0.0f;
+    KeyFrameAbuela[2].posY = 0.0f;
+    KeyFrameAbuela[2].posZ = 0.0f;
+    KeyFrameAbuela[2].giroTorso = -2.0f;
+    KeyFrameAbuela[2].rotCabeza = -4.0f;
+    KeyFrameAbuela[2].rotBrazoDer = -18.0f;
+    KeyFrameAbuela[2].rotBrazoIzq = -8.0f;
+    KeyFrameAbuela[2].rotPiernaDer = 0.0f;
+    KeyFrameAbuela[2].rotPiernaIzq = 0.0f;
 
-    for (int i = 0; i < MAX_FRAMES; i++) {
-        KeyFrame[i].posX = 0;
-        KeyFrame[i].posY = 0;
-        KeyFrame[i].posZ = 0;
-    }
+    // Segundo movimiento de saludo (vuelve a subir el brazo suavemente)
+    KeyFrameAbuela[3].posX = 0.0f;
+    KeyFrameAbuela[3].posY = 1.0f;
+    KeyFrameAbuela[3].posZ = 0.0f;
+    KeyFrameAbuela[3].giroTorso = -6.0f;
+    KeyFrameAbuela[3].rotCabeza = 6.0f;
+    KeyFrameAbuela[3].rotBrazoDer = -40.0f;
+    KeyFrameAbuela[3].rotBrazoIzq = -5.0f;
+    KeyFrameAbuela[3].rotPiernaDer = -3.0f;
+    KeyFrameAbuela[3].rotPiernaIzq = 3.0f;
 
+    // Tercer movimiento de saludo (baja ligeramente el brazo)
+    KeyFrameAbuela[4].posX = 0.0f;
+    KeyFrameAbuela[4].posY = 0.0f;
+    KeyFrameAbuela[4].posZ = 0.0f;
+    KeyFrameAbuela[4].giroTorso = -2.0f;
+    KeyFrameAbuela[4].rotCabeza = -4.0f;
+    KeyFrameAbuela[4].rotBrazoDer = -18.0f;
+    KeyFrameAbuela[4].rotBrazoIzq = -8.0f;
+    KeyFrameAbuela[4].rotPiernaDer = 0.0f;
+    KeyFrameAbuela[4].rotPiernaIzq = 0.0f;
+
+    // Último saludo arriba antes de descansar
+    KeyFrameAbuela[5].posX = 0.0f;
+    KeyFrameAbuela[5].posY = 1.0f;
+    KeyFrameAbuela[5].posZ = 0.0f;
+    KeyFrameAbuela[5].giroTorso = -4.0f;
+    KeyFrameAbuela[5].rotCabeza = 5.0f;
+    KeyFrameAbuela[5].rotBrazoDer = -38.0f;
+    KeyFrameAbuela[5].rotBrazoIzq = -5.0f;
+    KeyFrameAbuela[5].rotPiernaDer = 2.0f;
+    KeyFrameAbuela[5].rotPiernaIzq = -2.0f;
+
+    // Regresa a reposo para cerrar el bucle sin saltos
+    KeyFrameAbuela[6].posX = 0.0f;
+    KeyFrameAbuela[6].posY = 0.0f;
+    KeyFrameAbuela[6].posZ = 0.0f;
+    KeyFrameAbuela[6].giroTorso = 0.0f;
+    KeyFrameAbuela[6].rotCabeza = 0.0f;
+    KeyFrameAbuela[6].rotBrazoDer = 0.0f;
+    KeyFrameAbuela[6].rotBrazoIzq = 0.0f;
+    KeyFrameAbuela[6].rotPiernaDer = 0.0f;
+    KeyFrameAbuela[6].rotPiernaIzq = 0.0f;
+
+
+    playIndexAbuela = 0;
+    i_curr_steps_abuela = 0;
+    resetElementsAbuela();
+    interpolationAbuela();
+    playAbuela = true;
+
+    
     glm::mat4 modelOp = glm::mat4(1.0f);
     glm::mat4 viewOp = glm::mat4(1.0f);
     glm::mat4 projectionOp = glm::mat4(1.0f);
@@ -596,7 +630,7 @@ int main() {
     ma_sound_set_looping(&musicaFondo, MA_TRUE);
 
     // Para ajustar el volumen de la canción
-    ma_sound_set_volume(&musicaFondo, 0.5f);
+    ma_sound_set_volume(&musicaFondo, 0.2f);
 
     // Se inicia la reproducción
     ma_sound_start(&musicaFondo);
@@ -811,41 +845,62 @@ int main() {
         Ofrenda.Draw(staticShader);
 
 
-        // Bruja
-        modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(-220.0f, 0.0f + levitaBruja, 200.0f)); 
-        modelOp = glm::rotate(modelOp, glm::radians(330.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
-        modelOp = glm::scale(modelOp, glm::vec3(100.0f));                                   
+        // ------------------------------------------------------------------
+        // Esqueleto articulado 1 (Lado izquierdo de la ofrenda)
+        // ------------------------------------------------------------------
+        glm::mat4 modelTempEsq2 = glm::mat4(1.0f);
+        float escalaEsq2 = 90.0f;
+
+        // Esqueleto 1 - Torso
+        modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(-230.0f, (1.05f * escalaEsq2) + esq2_saltoY, 320.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(30.0f + esq2_giroTorso), glm::vec3(0.0f, 1.0f, 0.0f));
+        modelTempEsq2 = modelOp;
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq2));
         staticShader.setMat4("model", modelOp);
-        Bruja.Draw(staticShader);
+        BailarinTorso.Draw(staticShader);
 
 
-        //Escoba
-        modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(movEscoba_x, movEscoba_y, movEscoba_z));
-        modelOp = glm::rotate(modelOp, glm::radians(rotEscoba_yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-        modelOp = glm::rotate(modelOp, glm::radians(rotEscoba_pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-        modelOp = glm::rotate(modelOp, glm::radians(rotEscoba_roll), glm::vec3(0.0f, 0.0f, 1.0f));
-        modelOp = glm::rotate(modelOp, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-        modelOp = glm::scale(modelOp, glm::vec3(100.0f));
+        // Esqueleto 1 - Cabeza
+        modelOp = glm::translate(modelTempEsq2, glm::vec3(0.0f, 0.42f * escalaEsq2, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(esq2_rotCabeza), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq2));
         staticShader.setMat4("model", modelOp);
-        Escoba.Draw(staticShader);
+        BailarinCabeza.Draw(staticShader);
 
-        //Espada
-        modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(movEspada_x, movEspada_y, movEspada_z));
-        modelOp = glm::rotate(modelOp, glm::radians(rotEspada_yaw), glm::vec3(0.0f, 1.0f, 0.0f));
-        modelOp = glm::rotate(modelOp, glm::radians(rotEspada_pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-        modelOp = glm::rotate(modelOp, glm::radians(rotEspada_roll), glm::vec3(0.0f, 0.0f, 1.0f));
-        modelOp = glm::scale(modelOp, glm::vec3(100.0f)); 
+
+        // Esqueleto 1 - Brazo Derecho 
+        modelOp = glm::translate(modelTempEsq2, glm::vec3(-0.165f * escalaEsq2, 0.275f * escalaEsq2, 0.02f * escalaEsq2));
+        modelOp = glm::rotate(modelOp, glm::radians(-115.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(18.0f + sin(tiempo * 4.5f) * 18.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq2));
         staticShader.setMat4("model", modelOp);
-        Espada.Draw(staticShader);
+        BailarinBrazoDer.Draw(staticShader);
 
 
-        //Esqueleto
-        modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(-1200.0f, movEsqueleto_y, -1350.0f));
-        modelOp = glm::rotate(modelOp, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)); 
-        modelOp = glm::scale(modelOp, glm::vec3(80.0f));
+        // Esqueleto 1 - Brazo Izquierdo
+        modelOp = glm::translate(modelTempEsq2, glm::vec3(0.175f * escalaEsq2, 0.34f * escalaEsq2, -0.02f * escalaEsq2));
+        modelOp = glm::rotate(modelOp, glm::radians(esq2_rotBrazoIzq), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(-18.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq2));
         staticShader.setMat4("model", modelOp);
-        Esqueleto.Draw(staticShader);
+        BailarinBrazoIzq.Draw(staticShader);
+
+
+        // Esqueleto 1 - Pierna Derecha
+        modelOp = glm::translate(modelTempEsq2, glm::vec3(-0.105f * escalaEsq2, -0.145f * escalaEsq2, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(esq2_rotPiernaDer), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq2));
+        staticShader.setMat4("model", modelOp);
+        BailarinPiernaDer.Draw(staticShader);
+
+
+        // Esqueleto 1 - Pierna Izquierda
+        modelOp = glm::translate(modelTempEsq2, glm::vec3(0.105f * escalaEsq2, -0.145f * escalaEsq2, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(esq2_rotPiernaIzq), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq2));
+        staticShader.setMat4("model", modelOp);
+        BailarinPiernaIzq.Draw(staticShader);
+
 
         // Fantasma
         modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(movFantasma_x, 15.0f + alturaFantasma, movFantasma_z));
@@ -879,35 +934,34 @@ int main() {
         }
 
         
-        // Mujer 1 animada (sentada en la primera banca izquierda)
+        // Mujer sentada en la primera banca izquierda
         animShader.use();
         animShader.setMat4("projection", projectionOp);
         animShader.setMat4("view", viewOp);
         animShader.setVec3("viewPos", camera.Position);
-
         animShader.setVec3("light.direction", glm::vec3(0.0f, -1.0f, -0.5f));
         animShader.setVec3("light.ambient", glm::vec3(0.45f, 0.45f, 0.50f));
         animShader.setVec3("light.diffuse", glm::vec3(0.85f, 0.85f, 0.90f));
         animShader.setVec3("light.specular", glm::vec3(0.3f, 0.3f, 0.3f));
-
         animShader.setVec3("material.specular", glm::vec3(0.3f, 0.3f, 0.3f));
         animShader.setFloat("material.shininess", 16.0f);
-
         modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(-400.0f, 0.0f, 1500.0f));
         modelOp = glm::rotate(modelOp, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(2.4f));
         animShader.setMat4("model", modelOp);
         Mujer1.Draw(animShader);
 
+
         staticShader.use();
 
+    
         // ------------------------------------------------------------------
-        // Personaje articulado animado por KeyFrames (Centro del pasillo)
+        // Esqueleto articulado 2 (caminata de derecha a izquierda)
         // ------------------------------------------------------------------
         glm::mat4 modelTemp = glm::mat4(1.0f);
         float escalaBailarin = 95.0f;
 
-        // 1. Torso (Padre de la jerarquía, bajado a 1.05f para que los pies toquen Y = 0)
+        // Esqueleto 2 - Torso 
         modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f + posX, (1.05f * escalaBailarin) + posY, 850.0f + posZ));
         modelOp = glm::rotate(modelOp, glm::radians(giroTorso), glm::vec3(0.0f, 1.0f, 0.0f));
         modelTemp = modelOp;
@@ -915,48 +969,52 @@ int main() {
         staticShader.setMat4("model", modelOp);
         BailarinTorso.Draw(staticShader);
 
-        // 2. Cabeza
+        // Esqueleto 2 - Cabeza
         modelOp = glm::translate(modelTemp, glm::vec3(0.0f, 0.42f * escalaBailarin, 0.0f));
         modelOp = glm::rotate(modelOp, glm::radians(rotCabeza), glm::vec3(0.0f, 0.0f, 1.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaBailarin));
         staticShader.setMat4("model", modelOp);
         BailarinCabeza.Draw(staticShader);
 
-        // 3. Brazo Derecho
-        modelOp = glm::translate(modelTemp, glm::vec3(-0.195f * escalaBailarin, 0.32f * escalaBailarin, -0.02f * escalaBailarin));
+        // Esqueleto 2 - Brazo Derecho
+        modelOp = glm::translate(modelTemp, glm::vec3(-0.175f * escalaBailarin, 0.34f * escalaBailarin, -0.02f * escalaBailarin));
         modelOp = glm::rotate(modelOp, glm::radians(rotBrazoDer), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(18.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaBailarin));
         staticShader.setMat4("model", modelOp);
         BailarinBrazoDer.Draw(staticShader);
 
-        // 4. Brazo Izquierdo
-        modelOp = glm::translate(modelTemp, glm::vec3(0.195f * escalaBailarin, 0.32f * escalaBailarin, -0.02f * escalaBailarin));
+        // Esqueleto 2 - Brazo Izquierdo
+        modelOp = glm::translate(modelTemp, glm::vec3(0.175f * escalaBailarin, 0.34f * escalaBailarin, -0.02f * escalaBailarin));
         modelOp = glm::rotate(modelOp, glm::radians(rotBrazoIzq), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(-18.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaBailarin));
         staticShader.setMat4("model", modelOp);
         BailarinBrazoIzq.Draw(staticShader);
 
-        // 5. Pierna Derecha
+        // Esqueleto 2 - Pierna Derecha
         modelOp = glm::translate(modelTemp, glm::vec3(-0.105f * escalaBailarin, -0.145f * escalaBailarin, 0.0f));
         modelOp = glm::rotate(modelOp, glm::radians(rotPiernaDer), glm::vec3(1.0f, 0.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaBailarin));
         staticShader.setMat4("model", modelOp);
         BailarinPiernaDer.Draw(staticShader);
 
-        // 6. Pierna Izquierda
+        // Esqueleto 2 - Pierna Izquierda
         modelOp = glm::translate(modelTemp, glm::vec3(0.105f * escalaBailarin, -0.145f * escalaBailarin, 0.0f));
         modelOp = glm::rotate(modelOp, glm::radians(rotPiernaIzq), glm::vec3(1.0f, 0.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaBailarin));
         staticShader.setMat4("model", modelOp);
         BailarinPiernaIzq.Draw(staticShader);
 
+
         // ------------------------------------------------------------------
-        // Personaje articulado 2: Abuela junto a la ofrenda (Tecla O)
+        // Abuela articulada (junto a la ofrenda de lado derecho)
         // ------------------------------------------------------------------
         glm::mat4 modelTempAbuela = glm::mat4(1.0f);
         float escalaAbuela = 80.0f;
 
-        // 1. Torso
+
+        // Abuela - Torso
         modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(240.0f + abuelaPosX, (1.015f * escalaAbuela) + abuelaPosY, 340.0f + abuelaPosZ));
         modelOp = glm::rotate(modelOp, glm::radians(-30.0f + abuelaGiroTorso), glm::vec3(0.0f, 1.0f, 0.0f));
         modelTempAbuela = modelOp;
@@ -964,40 +1022,106 @@ int main() {
         staticShader.setMat4("model", modelOp);
         AbuelaTorso.Draw(staticShader);
 
-        // 2. Cabeza
+
+        // Abuela - Cabeza
         modelOp = glm::translate(modelTempAbuela, glm::vec3(0.0f, 0.355f * escalaAbuela, 0.0f));
         modelOp = glm::rotate(modelOp, glm::radians(abuelaRotCabeza), glm::vec3(0.0f, 0.0f, 1.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaAbuela));
         staticShader.setMat4("model", modelOp);
         AbuelaCabeza.Draw(staticShader);
 
-        // 3. Brazo Derecho (+X)
-        modelOp = glm::translate(modelTempAbuela, glm::vec3(0.165f * escalaAbuela, 0.245f * escalaAbuela, -0.02f * escalaAbuela));
+
+        // Abuela - Brazo Derecho (+X)
+        modelOp = glm::translate(modelTempAbuela, glm::vec3(0.135f * escalaAbuela, 0.225f * escalaAbuela, -0.02f * escalaAbuela));
         modelOp = glm::rotate(modelOp, glm::radians(abuelaRotBrazoDer), glm::vec3(1.0f, 0.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaAbuela));
         staticShader.setMat4("model", modelOp);
         AbuelaBrazoDer.Draw(staticShader);
 
-        // 4. Brazo Izquierdo (-X)
-        modelOp = glm::translate(modelTempAbuela, glm::vec3(-0.165f * escalaAbuela, 0.245f * escalaAbuela, -0.02f * escalaAbuela));
+
+        // Abuela - Brazo Izquierdo (-X)
+        modelOp = glm::translate(modelTempAbuela, glm::vec3(-0.145f * escalaAbuela, 0.235f * escalaAbuela, -0.02f * escalaAbuela));
         modelOp = glm::rotate(modelOp, glm::radians(abuelaRotBrazoIzq), glm::vec3(1.0f, 0.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaAbuela));
         staticShader.setMat4("model", modelOp);
         AbuelaBrazoIzq.Draw(staticShader);
 
-        // 5. Pierna Derecha (juntada al centro para cerrar la falda)
-        modelOp = glm::translate(modelTempAbuela, glm::vec3(0.038f * escalaAbuela, -0.095f * escalaAbuela, 0.0f));
+
+        // Abuela - Pierna Derecha
+        modelOp = glm::translate(modelTempAbuela, glm::vec3(0.038f * escalaAbuela, -0.085f * escalaAbuela, 0.0f));
         modelOp = glm::rotate(modelOp, glm::radians(abuelaRotPiernaDer), glm::vec3(1.0f, 0.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaAbuela));
         staticShader.setMat4("model", modelOp);
         AbuelaPiernaDer.Draw(staticShader);
 
-        // 6. Pierna Izquierda (juntada al centro para cerrar la falda)
-        modelOp = glm::translate(modelTempAbuela, glm::vec3(-0.038f * escalaAbuela, -0.095f * escalaAbuela, 0.0f));
+
+        // Abuela - Pierna Izquierda
+        modelOp = glm::translate(modelTempAbuela, glm::vec3(-0.038f * escalaAbuela, -0.085f * escalaAbuela, 0.0f));
         modelOp = glm::rotate(modelOp, glm::radians(abuelaRotPiernaIzq), glm::vec3(1.0f, 0.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(escalaAbuela));
         staticShader.setMat4("model", modelOp);
         AbuelaPiernaIzq.Draw(staticShader);
+
+
+        // ------------------------------------------------------------------
+        // Esqueleto articulado 3 (reverencias frente a una tumba)
+        // ------------------------------------------------------------------
+        glm::mat4 modelBaseEsq3 = glm::mat4(1.0f);
+        glm::mat4 modelTorsoEsq3 = glm::mat4(1.0f);
+        float escalaEsq3 = 90.0f;
+
+
+        // Viendo de frente hacia la tumba 20
+        modelBaseEsq3 = glm::translate(glm::mat4(1.0f), glm::vec3(-750.0f, 1.05f * escalaEsq3, 730.0f));
+        modelBaseEsq3 = glm::rotate(modelBaseEsq3, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+        // Esqueleto 3 - Pierna Derecha 
+        modelOp = glm::translate(modelBaseEsq3, glm::vec3(-0.105f * escalaEsq3, -0.145f * escalaEsq3, 0.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq3));
+        staticShader.setMat4("model", modelOp);
+        BailarinPiernaDer.Draw(staticShader);
+
+
+        // Esqueleto 3 - Pierna Izquierda 
+        modelOp = glm::translate(modelBaseEsq3, glm::vec3(0.105f * escalaEsq3, -0.145f * escalaEsq3, 0.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq3));
+        staticShader.setMat4("model", modelOp);
+        BailarinPiernaIzq.Draw(staticShader);
+
+
+        // Esqueleto 3 - Torso 
+        modelTorsoEsq3 = glm::rotate(modelBaseEsq3, glm::radians(esq3_inclinacion), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::scale(modelTorsoEsq3, glm::vec3(escalaEsq3));
+        staticShader.setMat4("model", modelOp);
+        BailarinTorso.Draw(staticShader);
+
+
+        // Esqueleto 3 - Cabeza 
+        modelOp = glm::translate(modelTorsoEsq3, glm::vec3(0.0f, 0.42f * escalaEsq3, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(esq3_rotCabezaX), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq3));
+        staticShader.setMat4("model", modelOp);
+        BailarinCabeza.Draw(staticShader);
+
+
+        // Esqueleto 3 - Brazo Derecho
+        modelOp = glm::translate(modelTorsoEsq3, glm::vec3(-0.175f * escalaEsq3, 0.34f * escalaEsq3, -0.02f * escalaEsq3));
+        modelOp = glm::rotate(modelOp, glm::radians(esq3_rotBrazos), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(18.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq3));
+        staticShader.setMat4("model", modelOp);
+        BailarinBrazoDer.Draw(staticShader);
+
+
+        // Esqueleto 3 - Brazo Izquierdo
+        modelOp = glm::translate(modelTorsoEsq3, glm::vec3(0.175f * escalaEsq3, 0.34f * escalaEsq3, -0.02f * escalaEsq3));
+        modelOp = glm::rotate(modelOp, glm::radians(esq3_rotBrazos), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelOp = glm::rotate(modelOp, glm::radians(-18.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        modelOp = glm::scale(modelOp, glm::vec3(escalaEsq3));
+        staticShader.setMat4("model", modelOp);
+        BailarinBrazoIzq.Draw(staticShader);
+
 
         // Muro trasero 
         for (int i = 0; i < 33; i++) {
@@ -1056,7 +1180,6 @@ int main() {
 
         // Lampara 1 (Izquierda)
         modelOp = glm::translate(glm::mat4(1.0f), glm::vec3(-180.0f, 0.0f, 1700.0f));
-        //modelOp = glm::rotate(modelOp, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         modelOp = glm::scale(modelOp, glm::vec3(90.0f)); 
         staticShader.setMat4("model", modelOp);
         Lampara.Draw(staticShader);
@@ -1847,37 +1970,29 @@ void my_input(GLFWwindow* window, int key, int scancode, int action, int mode) {
     // Iniciar / Detener baile por KeyFrames con tecla P
     if (key == GLFW_KEY_P && action == GLFW_PRESS) {
         if (!play && FrameIndex > 1) {
+            playIndex = 0;
+            i_curr_steps = 0;
             resetElements();
             interpolation();
             play = true;
-            playIndex = 0;
-            i_curr_steps = 0;
         }
         else {
             play = false;
         }
-    }  
+    }
 
     // Iniciar / Detener animación KeyFrames de la Abuela con tecla O
     if (key == GLFW_KEY_O && action == GLFW_PRESS) {
         if (!playAbuela && FrameIndexAbuela > 1) {
+            playIndexAbuela = 0;
+            i_curr_steps_abuela = 0;
             resetElementsAbuela();
             interpolationAbuela();
             playAbuela = true;
-            playIndexAbuela = 0;
-            i_curr_steps_abuela = 0;
         }
         else {
             playAbuela = false;
         }
-    }
-
-
-    if (key == GLFW_KEY_B && action == GLFW_PRESS) {
-        escobaVueloErratico = false; // Va hacia la bruja y se detiene ahí
-    }
-    if (key == GLFW_KEY_V && action == GLFW_PRESS) {
-        escobaVueloErratico = true;  // Retoma el vuelo 
     }
     
 }
